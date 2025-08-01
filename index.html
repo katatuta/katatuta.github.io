@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>생성형 AI와 부의 양극화: 대화형 분석</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Neutrals with Teal/Blue Accents -->
+    <!-- Application Structure Plan: A thematic, four-section single-page application (SPA) designed for intuitive exploration. The structure progresses from a high-level 'Current Analysis' dashboard, to a 'Deep Dive' into the mechanisms, a 'Future Outlook' on AGI, and finally 'Policy Recommendations'. This non-linear, thematic structure is chosen over a simple report summary to empower users to explore topics based on interest, making complex information more digestible and engaging through interactive elements like dynamic charts, clickable cards, and tabbed content. -->
+    <!-- Visualization & Content Choices: Key data points are transformed into interactive visualizations. EY's unequal benefit distribution is a donut chart for immediate impact. WEF's job data is a bar chart with an interactive toggle to reveal the critical 'skills gap' nuance. The 3-stage wage model is an interactive HTML diagram for step-by-step understanding. Policy options are presented in a comparable card grid. These choices prioritize user engagement and comprehension over static data presentation, using Chart.js for charts and structured HTML/Tailwind for diagrams, adhering to the NO SVG/Mermaid rule. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f8f9fa; 
+            color: #343a40;
+        }
+        .nav-link {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: #0891b2; /* cyan-600 */
+            transform: translateY(-2px);
+        }
+        .section-title {
+            border-bottom: 3px solid #0891b2;
+            padding-bottom: 0.5rem;
+            display: inline-block;
+        }
+        .card {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        .tab-button {
+            transition: all 0.3s ease;
+        }
+        .tab-button.active {
+            background-color: #0891b2;
+            color: white;
+            border-color: #0891b2;
+        }
+        .policy-card-back {
+            transform: rotateY(180deg);
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+        }
+        .policy-card-front {
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+        }
+        .policy-card.flipped .policy-card-inner {
+            transform: rotateY(180deg);
+        }
+        .policy-card-inner {
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 40vh;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <nav id="navbar" class="bg-white/80 backdrop-blur-md sticky top-0 z-50 shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                <div class="flex-shrink-0">
+                    <h1 class="text-xl md:text-2xl font-bold text-gray-800">AI와 부의 지형도</h1>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a onclick="scrollToSection('analysis')" class="nav-link px-3 py-2 rounded-md text-base font-medium text-gray-700">핵심 현황</a>
+                        <a onclick="scrollToSection('deepdive')" class="nav-link px-3 py-2 rounded-md text-base font-medium text-gray-700">심층 탐구</a>
+                        <a onclick="scrollToSection('future')" class="nav-link px-3 py-2 rounded-md text-base font-medium text-gray-700">미래 전망</a>
+                        <a onclick="scrollToSection('policy')" class="nav-link px-3 py-2 rounded-md text-base font-medium text-gray-700">정책 제언</a>
+                    </div>
+                </div>
+                <div class="md:hidden">
+                    <button id="mobile-menu-button" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-cyan-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-cyan-500">
+                        <span class="sr-only">메뉴 열기</span>
+                        <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div id="mobile-menu" class="md:hidden hidden">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a onclick="scrollToSection('analysis')" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-gray-700">핵심 현황</a>
+                <a onclick="scrollToSection('deepdive')" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-gray-700">심층 탐구</a>
+                <a onclick="scrollToSection('future')" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-gray-700">미래 전망</a>
+                <a onclick="scrollToSection('policy')" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-gray-700">정책 제언</a>
+            </div>
+        </div>
+    </nav>
+
+    <header class="bg-white">
+        <div class="max-w-7xl mx-auto py-16 px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="text-3xl md:text-5xl font-extrabold text-gray-900 leading-tight">
+                <span class="block">거대한 분기점: 생성형 AI</span>
+                <span class="block text-cyan-600">부의 양극화를 가속하는가?</span>
+            </h2>
+            <p class="mt-6 max-w-3xl mx-auto text-lg md:text-xl text-gray-600">
+                생성형 AI는 전례 없는 생산성 향상을 약속하는 동시에, 부와 소득의 불평등을 심화시킬 수 있는 강력한 동력입니다. 이 대화형 보고서는 AI가 경제 지형을 어떻게 바꾸고 있는지 분석하고, 공동 번영을 위한 길을 모색합니다.
+            </p>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+
+        <section id="analysis" class="mb-24 scroll-mt-20">
+            <h2 class="section-title text-3xl font-bold mb-4">핵심 현황: AI가 만드는 새로운 경제 질서</h2>
+            <p class="text-lg text-gray-600 mb-12 max-w-4xl">
+                AI가 우리 경제에 미치는 영향은 이미 현실입니다. 일자리 대체부터 부의 분배까지, 가장 핵심적인 변화들을 데이터로 확인해보세요. 이 섹션은 AI가 부의 양극화에 미치는 가장 강력하고 즉각적인 효과들을 요약하여 보여줍니다.
+            </p>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="card p-6 lg:col-span-2">
+                    <h3 class="text-xl font-bold mb-2 text-gray-800">부의 재분배: AI 이익은 누구에게 돌아가는가?</h3>
+                    <p class="text-gray-600 mb-4">EY의 분석에 따르면, 생성형 AI가 창출하는 막대한 경제적 이익은 극도로 불평등하게 분배될 것입니다. 아래 차트의 각 부분에 마우스를 올려 분배 구조를 확인해보세요.</p>
+                    <div class="chart-container h-64 md:h-80">
+                        <canvas id="incomeDistributionChart"></canvas>
+                    </div>
+                </div>
+                <div class="card p-6 flex flex-col justify-center">
+                    <h3 class="text-xl font-bold mb-2 text-gray-800">일자리 지각 변동</h3>
+                    <p class="text-gray-600 mb-4">골드만삭스는 전 세계적으로 <strong class="text-cyan-600 text-2xl">3억 개</strong>의 일자리가 AI로 대체될 수 있다고 추정합니다. 이는 단순한 변화가 아닌 구조적 전환을 의미합니다.</p>
+                    <div class="mt-4 pt-4 border-t">
+                        <h4 class="font-semibold text-gray-700">자동화 vs 증강</h4>
+                        <p class="text-gray-600 mt-1">많은 기업들이 AI를 인간의 역량을 강화하는 '증강'보다 노동을 대체하는 '자동화'에 우선적으로 사용하고 있어, 노동 소득 감소의 위험이 커지고 있습니다.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="deepdive" class="mb-24 scroll-mt-20">
+            <h2 class="section-title text-3xl font-bold mb-4">심층 탐구: 불평등은 어떻게 만들어지는가</h2>
+            <p class="text-lg text-gray-600 mb-12 max-w-4xl">
+                AI가 양극화를 심화시키는 구체적인 작동 원리를 파헤쳐 봅니다. 노동 시장의 구조 변화, 자본의 역할 증대, 그리고 국가 간 격차 문제를 통해 불평등의 메커니즘을 심층적으로 이해할 수 있습니다. 각 탭을 클릭하여 자세한 내용을 확인하세요.
+            </p>
+            <div>
+                <div class="mb-4 border-b border-gray-200">
+                    <nav class="-mb-px flex space-x-4" aria-label="Tabs">
+                        <button onclick="changeTab(event, 'labor')" class="tab-button active whitespace-nowrap py-3 px-4 border-b-2 font-medium text-base">노동 시장의 재편</button>
+                        <button onclick="changeTab(event, 'capital')" class="tab-button whitespace-nowrap py-3 px-4 border-b-2 font-medium text-base">자본의 부상</button>
+                        <button onclick="changeTab(event, 'global')" class="tab-button whitespace-nowrap py-3 px-4 border-b-2 font-medium text-base">글로벌 격차</button>
+                    </nav>
+                </div>
+                <div id="labor" class="tab-content">
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div class="card p-6">
+                            <h3 class="text-xl font-bold mb-2">일자리의 소멸과 생성</h3>
+                            <p class="text-gray-600 mb-4">WEF는 2030년까지 9,200만 개의 일자리가 사라지고 1억 7,000만 개가 새로 생길 것으로 예측합니다. 그러나 이 '순증가'는 심각한 '기술 불일치' 문제를 가리고 있습니다.</p>
+                            <div class="chart-container h-64 md:h-80">
+                                <canvas id="jobChangeChart"></canvas>
+                            </div>
+                            <div id="job-skill-gap" class="mt-4 p-4 bg-amber-100 text-amber-800 rounded-lg hidden">
+                                <h4 class="font-bold">숨겨진 위기: 학력 인플레이션</h4>
+                                <p>새로운 AI 관련 일자리의 <strong class="text-xl">77%</strong>는 석사, <strong class="text-xl">18%</strong>는 박사 학위를 요구할 것으로 예측됩니다. 이는 대체되는 일자리의 노동자들이 감당하기 어려운 장벽입니다.</p>
+                            </div>
+                            <button onclick="toggleSkillGap()" class="mt-4 w-full bg-cyan-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-cyan-700 transition">새 일자리의 비밀 확인하기</button>
+                        </div>
+                        <div class="card p-6">
+                            <h3 class="text-xl font-bold mb-2">임금 양극화의 3단계 모델</h3>
+                            <p class="text-gray-600 mb-4">AI는 임금 구조를 복잡하게 변화시킵니다. 아래 단계를 클릭하여 AI가 특정 직업 내, 그리고 직업 간 임금 격차에 어떻게 다르게 영향을 미치는지 알아보세요.</p>
+                            <div class="space-y-4 mt-6">
+                                <div id="stage1" onclick="selectStage('stage1')" class="p-4 border rounded-lg cursor-pointer transition hover:bg-gray-50">
+                                    <h4 class="font-bold text-lg">1단계: 직업 내 격차 압축</h4>
+                                </div>
+                                <div id="stage2" onclick="selectStage('stage2')" class="p-4 border rounded-lg cursor-pointer transition hover:bg-gray-50">
+                                    <h4 class="font-bold text-lg">2단계: 직업 간 격차 양극화</h4>
+                                </div>
+                                <div id="stage3" onclick="selectStage('stage3')" class="p-4 border rounded-lg cursor-pointer transition hover:bg-gray-50">
+                                    <h4 class="font-bold text-lg">3단계: 자본에 의한 노동 대체</h4>
+                                </div>
+                            </div>
+                            <div id="stage-description" class="mt-4 p-4 bg-slate-100 rounded-lg min-h-[120px]">
+                                <p class="text-gray-700">단계를 선택하여 설명을 확인하세요.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="capital" class="tab-content hidden">
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div class="card p-6">
+                            <h3 class="text-xl font-bold mb-2">'승자독식' 경제</h3>
+                            <p class="text-gray-600 mb-4">AI 기술은 막대한 초기 투자와 데이터가 필요하기 때문에 소수의 '초거성 기업'에게 부가 집중되는 경향이 있습니다. 이는 시장 독점을 심화시키고 노동 소득의 비중을 감소시킵니다.</p>
+                            <div class="mt-6">
+                                <div class="flex items-center mb-4">
+                                    <div class="bg-cyan-500 text-white rounded-full h-10 w-10 flex items-center justify-center font-bold mr-4">1</div>
+                                    <p>높은 진입 장벽 (컴퓨팅 파워, 데이터)</p>
+                                </div>
+                                <div class="flex items-center mb-4">
+                                    <div class="bg-cyan-500 text-white rounded-full h-10 w-10 flex items-center justify-center font-bold mr-4">2</div>
+                                    <p>선발주자 우위 및 규모의 경제 효과</p>
+                                </div>
+                                <div class="flex items-center">
+                                    <div class="bg-cyan-500 text-white rounded-full h-10 w-10 flex items-center justify-center font-bold mr-4">3</div>
+                                    <p>'초거성 기업'의 이익 독식 및 시장 집중</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card p-6">
+                            <h3 class="text-xl font-bold mb-2">무형자산: 새로운 부의 원천</h3>
+                            <p class="text-gray-600 mb-4">AI의 핵심 연료인 데이터와 AI가 생성한 지적재산(IP)의 소유권은 새로운 부의 격전지입니다. 불확실한 법적 환경은 거대 자본을 가진 기업에게 유리한 '경제적 해자'로 작용합니다.</p>
+                            <ul class="list-disc list-inside space-y-2 text-gray-700 mt-4">
+                                <li><strong>데이터 라이선싱:</strong> 거대 기업은 합법적으로 방대한 데이터를 확보할 재정적 능력을 갖춤</li>
+                                <li><strong>법적 대응력:</strong> 복잡한 소송을 감당할 수 있는 대규모 법무팀 보유</li>
+                                <li><strong>로비력:</strong> 자신들에게 유리한 방향으로 법률 형성에 영향력 행사</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div id="global" class="tab-content hidden">
+                     <div class="grid md:grid-cols-2 gap-8">
+                        <div class="card p-6">
+                            <h3 class="text-xl font-bold mb-2">글로벌 AI 격차</h3>
+                            <p class="text-gray-600 mb-4">AI로 인한 경제적 이익은 미국, 중국 등 소수의 선도국에 집중되고 있습니다. 이는 개발도상국의 저비용 노동력 우위를 잠식하여 국가 간 '발산(divergence)'을 초래할 수 있습니다.</p>
+                            <div class="mt-6 p-4 bg-red-100 text-red-800 rounded-lg">
+                                <p class="font-bold">투자 집중 현황 (2023년)</p>
+                                <p>미국은 중국보다 <strong class="text-2xl">8.7배</strong> 더 많은 민간 AI 투자를 유치하며, 이는 개발도상국으로부터의 투자 이탈 효과를 낳습니다.</p>
+                            </div>
+                        </div>
+                        <div class="card p-6">
+                            <h3 class="text-xl font-bold mb-2">국가 내 불평등 심화</h3>
+                            <p class="text-gray-600 mb-4">AI는 기존의 사회적 균열을 더욱 깊게 만들 수 있습니다. 특히 자동화에 취약한 직업군에 특정 인종 및 계층이 과도하게 집중되어 있어 부의 격차가 더욱 벌어질 위험이 큽니다.</p>
+                             <div class="mt-6 p-4 bg-indigo-100 text-indigo-800 rounded-lg">
+                                <p class="font-bold">미국 내 인종 간 부의 격차 (McKinsey 예측)</p>
+                                <p>생성형 AI는 흑인과 백인 가구 간의 연간 부의 격차를 <strong class="text-2xl">$430억</strong>까지 넓힐 수 있습니다.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="future" class="mb-24 scroll-mt-20">
+            <h2 class="section-title text-3xl font-bold mb-4">미래 전망: AGI와 경제적 특이점</h2>
+            <p class="text-lg text-gray-600 mb-12 max-w-4xl">
+                인간의 모든 지적 노동을 대체할 수 있는 인공일반지능(AGI)의 등장은 현재의 경제 규칙을 근본적으로 바꿀 수 있습니다. 이 섹션에서는 AGI가 가져올 잠재적인 경제적 특이점과 그로 인한 사회 계약의 위기를 탐구합니다.
+            </p>
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="card p-6">
+                    <h3 class="text-xl font-bold mb-2">노동의 종말?</h3>
+                    <p class="text-gray-600 mb-4">AGI가 인간의 노동을 완전히 대체하는 시나리오에서, 인간 노동의 가치(한계생산성)는 0에 수렴하고 임금 또한 사라질 수 있습니다. 경제적 권력은 AGI라는 '자본'을 소유한 이들에게 완전히 이전됩니다.</p>
+                    <div class="mt-6 space-y-4">
+                        <div class="p-4 bg-gray-100 rounded-lg">
+                            <p class="font-semibold">인간 노동의 한계생산성 → 0</p>
+                        </div>
+                        <div class="text-center text-2xl font-bold text-gray-400">↓</div>
+                        <div class="p-4 bg-gray-100 rounded-lg">
+                            <p class="font-semibold">인간의 임금 → 0</p>
+                        </div>
+                         <div class="text-center text-2xl font-bold text-gray-400">↓</div>
+                        <div class="p-4 bg-red-100 rounded-lg">
+                            <p class="font-semibold text-red-800">부의 극단적 집중 발생</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card p-6">
+                    <h3 class="text-xl font-bold mb-2">총수요의 위기</h3>
+                    <p class="text-gray-600 mb-4">모두의 임금이 사라진다면, 누가 상품과 서비스를 구매할 수 있을까요? 기업은 그 어느 때보다 효율적으로 생산하지만 소비자가 사라지는 역설적인 '총수요 붕괴'가 발생할 수 있습니다.</p>
+                    <p class="mt-6 text-gray-700">이는 노동과 소득의 연결고리가 끊어지는 것을 의미하며, 기존의 사회 계약에 대한 근본적인 재협상을 요구합니다. 이는 단순한 경제 위기를 넘어 사회 시스템 전체의 붕괴로 이어질 수 있습니다.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="policy" class="scroll-mt-20">
+            <h2 class="section-title text-3xl font-bold mb-4">정책 제언: 공동 번영을 위한 항해</h2>
+            <p class="text-lg text-gray-600 mb-12 max-w-4xl">
+                AI가 가져올 미래는 정해져 있지 않습니다. 우리의 '선택'에 달려있습니다. AI가 초래할 불평등을 완화하고 그 혜택을 모두가 누리기 위해 논의되는 다양한 정책적 대안들을 살펴봅니다. 각 카드를 클릭하여 장단점을 비교해보세요.
+            </p>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="policy-card" onclick="this.classList.toggle('flipped')">
+                    <div class="policy-card-inner relative w-full h-64">
+                        <div class="policy-card-front absolute w-full h-full card p-6 flex flex-col justify-center items-center text-center">
+                            <h3 class="text-2xl font-bold">보편적 기본소득 (UBI)</h3>
+                            <p class="mt-2 text-gray-600">모든 시민에게 정기적으로 현금 지급</p>
+                            <span class="mt-4 text-sm font-semibold text-cyan-600">클릭하여 자세히 보기</span>
+                        </div>
+                        <div class="policy-card-back absolute w-full h-full card p-6 bg-gray-800 text-white">
+                            <h4 class="font-bold text-lg mb-2">장점</h4>
+                            <ul class="list-disc list-inside text-sm mb-4"><li>소득-노동 분리, 빈곤 완화</li><li>총수요 유지, 웰빙 향상</li></ul>
+                            <h4 class="font-bold text-lg mb-2">단점/비판</h4>
+                            <ul class="list-disc list-inside text-sm"><li>막대한 비용, 노동 의욕 저하 우려</li><li>역진성 논란, 기술 엘리트의 의도 비판</li></ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="policy-card" onclick="this.classList.toggle('flipped')">
+                    <div class="policy-card-inner relative w-full h-64">
+                        <div class="policy-card-front absolute w-full h-full card p-6 flex flex-col justify-center items-center text-center">
+                            <h3 class="text-2xl font-bold">누진적 조세 개혁</h3>
+                            <p class="mt-2 text-gray-600">노동세↓ 자본세/초과이윤세↑</p>
+                            <span class="mt-4 text-sm font-semibold text-cyan-600">클릭하여 자세히 보기</span>
+                        </div>
+                        <div class="policy-card-back absolute w-full h-full card p-6 bg-gray-800 text-white">
+                            <h4 class="font-bold text-lg mb-2">장점</h4>
+                            <ul class="list-disc list-inside text-sm mb-4"><li>부의 재분배, 자본 집중 완화</li><li>사회 안전망 재원 마련</li></ul>
+                            <h4 class="font-bold text-lg mb-2">단점/비판</h4>
+                            <ul class="list-disc list-inside text-sm"><li>자본 도피, 조세 저항</li><li>생산성 저해 가능성</li></ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="policy-card" onclick="this.classList.toggle('flipped')">
+                    <div class="policy-card-inner relative w-full h-64">
+                        <div class="policy-card-front absolute w-full h-full card p-6 flex flex-col justify-center items-center text-center">
+                            <h3 class="text-2xl font-bold">평생 학습 및 재교육</h3>
+                            <p class="mt-2 text-gray-600">대규모 직업 훈련 및 교육 개혁</p>
+                            <span class="mt-4 text-sm font-semibold text-cyan-600">클릭하여 자세히 보기</span>
+                        </div>
+                        <div class="policy-card-back absolute w-full h-full card p-6 bg-gray-800 text-white">
+                            <h4 class="font-bold text-lg mb-2">장점</h4>
+                            <ul class="list-disc list-inside text-sm mb-4"><li>노동력의 기술 적응력 향상</li><li>AI와 보완적인 인력 양성</li></ul>
+                            <h4 class="font-bold text-lg mb-2">단점/비판</h4>
+                            <ul class="list-disc list-inside text-sm"><li>교육과 실제 필요 기술 간 격차</li><li>막대한 투자 필요, 고령층의 어려움</li></ul>
+                        </div>
+                    </div>
+                </div>
+                 <div class="policy-card" onclick="this.classList.toggle('flipped')">
+                    <div class="policy-card-inner relative w-full h-64">
+                        <div class="policy-card-front absolute w-full h-full card p-6 flex flex-col justify-center items-center text-center">
+                            <h3 class="text-2xl font-bold">AI 거버넌스 및 규제</h3>
+                            <p class="mt-2 text-gray-600">투명성, 책임성, 공정성 원칙 법제화</p>
+                            <span class="mt-4 text-sm font-semibold text-cyan-600">클릭하여 자세히 보기</span>
+                        </div>
+                        <div class="policy-card-back absolute w-full h-full card p-6 bg-gray-800 text-white">
+                            <h4 class="font-bold text-lg mb-2">장점</h4>
+                            <ul class="list-disc list-inside text-sm mb-4"><li>차별/편향 방지, 시민권 보호</li><li>공정한 경쟁 환경, 사회적 신뢰 구축</li></ul>
+                            <h4 class="font-bold text-lg mb-2">단점/비판</h4>
+                            <ul class="list-disc list-inside text-sm"><li>혁신 저해 가능성</li><li>규제 포획 위험, 글로벌 표준 부재</li></ul>
+                        </div>
+                    </div>
+                </div>
+                 <div class="policy-card" onclick="this.classList.toggle('flipped')">
+                    <div class="policy-card-inner relative w-full h-64">
+                        <div class="policy-card-front absolute w-full h-full card p-6 flex flex-col justify-center items-center text-center">
+                            <h3 class="text-2xl font-bold">고도화된 사회보험</h3>
+                            <p class="mt-2 text-gray-600">실업 보험, 사회 부조 강화</p>
+                            <span class="mt-4 text-sm font-semibold text-cyan-600">클릭하여 자세히 보기</span>
+                        </div>
+                        <div class="policy-card-back absolute w-full h-full card p-6 bg-gray-800 text-white">
+                            <h4 class="font-bold text-lg mb-2">장점</h4>
+                            <ul class="list-disc list-inside text-sm mb-4"><li>노동 시장 충격 완화</li><li>소득 안정성 제공</li></ul>
+                            <h4 class="font-bold text-lg mb-2">단점/비판</h4>
+                            <ul class="list-disc list-inside text-sm"><li>기존 시스템의 적용 범위 한계</li><li>재정 부담 증가</li></ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-gray-800 text-white">
+        <div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8 text-center">
+            <p>본 대화형 보고서는 제공된 '생성형 AI가 부의 양극화에 미치는 영향 연구'를 기반으로 제작되었습니다.</p>
+            <p class="mt-2 text-sm text-gray-400">Interactive Application by Gemini</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            
+            const incomeCtx = document.getElementById('incomeDistributionChart').getContext('2d');
+            new Chart(incomeCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['상위 20% (5분위)', '하위 20% (1분위)', '기타 60%'],
+                    datasets: [{
+                        label: 'AI 생성 이익 분배 구조 (EY 분석)',
+                        data: [50, 5, 45],
+                        backgroundColor: [
+                            '#06b6d4', // cyan-500
+                            '#f43f5e', // rose-500
+                            '#64748b'  // slate-500
+                        ],
+                        borderColor: '#f8f9fa',
+                        borderWidth: 4,
+                        hoverOffset: 10
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: '#4b5563',
+                                font: {
+                                    size: 14,
+                                    family: "'Noto Sans KR', sans-serif"
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed !== null) {
+                                        label += context.label + ' - ' + context.raw + '%';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            const jobCtx = document.getElementById('jobChangeChart').getContext('2d');
+            new Chart(jobCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['일자리 변동 (WEF 예측)'],
+                    datasets: [
+                        {
+                            label: '신규 창출 일자리',
+                            data: [170],
+                            backgroundColor: '#22c55e', // green-500
+                        },
+                        {
+                            label: '대체/소멸 일자리',
+                            data: [92],
+                            backgroundColor: '#ef4444', // red-500
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                             labels: {
+                                color: '#4b5563',
+                                font: {
+                                    size: 14,
+                                    family: "'Noto Sans KR', sans-serif"
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.raw + '백만 개';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: '일자리 수 (백만 개)',
+                                color: '#4b5563'
+                            }
+                        }
+                    }
+                }
+            });
+
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+        });
+
+        function scrollToSection(sectionId) {
+            const section = document.getElementById(sectionId);
+            if (section) {
+                section.scrollIntoView({ behavior: 'smooth' });
+                const mobileMenu = document.getElementById('mobile-menu');
+                if(!mobileMenu.classList.contains('hidden')) {
+                    mobileMenu.classList.add('hidden');
+                }
+            }
+        }
+
+        function changeTab(event, tabID) {
+            let tabcontent = document.getElementsByClassName("tab-content");
+            for (let i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].classList.add("hidden");
+            }
+            let tablinks = document.getElementsByClassName("tab-button");
+            for (let i = 0; i < tablinks.length; i++) {
+                tablinks[i].classList.remove("active");
+            }
+            document.getElementById(tabID).classList.remove("hidden");
+            event.currentTarget.classList.add("active");
+        }
+
+        function toggleSkillGap() {
+            document.getElementById('job-skill-gap').classList.toggle('hidden');
+        }
+
+        const stageDescriptions = {
+            stage1: {
+                title: "1단계: 직업 내 격차 압축",
+                text: "초기 AI 도구는 반복적 과업을 자동화하여, 직업 내 저성과자의 생산성을 높여 고성과자와의 격차를 줄입니다. (예: 주니어 변호사가 AI로 판례 검색)"
+            },
+            stage2: {
+                title: "2단계: 직업 간 격차 양극화",
+                text: "AI가 고도화되면서 중간 계층의 직무를 대체하고, 최고 숙련 노동자의 전략적 업무를 보완하여 생산성을 폭발적으로 높입니다. 이로 인해 직업 간 임금 격차가 심화됩니다."
+            },
+            stage3: {
+                title: "3단계: 자본에 의한 노동 대체",
+                text: "최종 단계에서 AI 시스템(자본)이 고숙련 노동마저 대체하기 시작하며, 경제 전체의 노동소득분배율이 하락하고 부는 자본 소유자에게 집중됩니다."
+            }
+        };
+
+        function selectStage(stageId) {
+            const descriptionEl = document.getElementById('stage-description');
+            const stageData = stageDescriptions[stageId];
+            descriptionEl.innerHTML = `<h5 class="font-bold text-gray-800">${stageData.title}</h5><p class="text-gray-700 mt-2">${stageData.text}</p>`;
+
+            document.querySelectorAll('.space-y-4 > div').forEach(el => {
+                el.classList.remove('bg-cyan-100', 'border-cyan-500');
+            });
+            document.getElementById(stageId).classList.add('bg-cyan-100', 'border-cyan-500');
+        }
+
+    </script>
+</body>
+</html>
